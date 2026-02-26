@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker Puasa 30 Hari</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #FFC107;
+            --bg: #F0F8FF;
+            --text: #333;
+        }
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 15px;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .day-card {
+            background-color: #E3F2FD;
+            border: 3px solid #BBDEFB;
+            border-radius: 15px;
+            padding: 15px 5px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .day-card:hover {
+            transform: scale(1.05);
+        }
+        .day-card.checked {
+            background-color: var(--secondary);
+            border-color: #FFA000;
+            color: white;
+        }
+        .day-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .day-date {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #555;
+            pointer-events: none;
+            font-weight: bold;
+        }
+        .day-card.checked .day-date {
+            color: #FFF8E1;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 80%;
+            width: 300px;
+            border: 5px solid var(--secondary);
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        .modal-text {
+            font-size: 1.3em;
+            color: var(--primary);
+            font-weight: bold;
+            margin: 20px 0;
+            line-height: 1.4;
+        }
+        .input-name {
+            width: 80%;
+            padding: 10px;
+            font-size: 1.2em;
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-family: inherit;
+            text-align: center;
+            outline: none;
+        }
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn:hover {
+            background: #357ABD;
+        }
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .mascot {
+            font-size: 4em;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="cheer-sound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
+
+    <p class="mascot">🐧✨</p>
+    <h1>Tracker Puasa Juara!</h1>
+    <p class="subtitle">Klik kotak harinya kalau kamu berhasil puasa penuh ya!</p>
+
+    <div class="grid-container" id="tracker-grid">
+        </div>
+
+    <div id="overlay"></div>
+
+    <div id="name-modal" class="modal">
+        <p style="font-size: 3em; margin: 0;">🐧</p>
+        <p class="modal-text">Halo! Pingu mau kenalan nih. Siapa namamu?</p>
+        <input type="text" id="user-name-input" class="input-name" placeholder="Ketik namamu..." autocomplete="off">
+        <br>
+        <button class="btn" onclick="saveName()">Mulai Puasa!</button>
+    </div>
+
+    <div id="welcome-modal" class="modal">
+        <p style="font-size: 3em; margin: 0;">👋</p>
+        <p id="welcome-text" class="modal-text"></p>
+        <button class="btn" onclick="closeWelcomeModal()">Siap!</button>
+    </div>
+
+    <div id="motivation-modal" class="modal">
+        <p style="font-size: 3em; margin: 0;">🎉</p>
+        <p id="motivation-text" class="modal-text"></p>
+        <button class="btn" onclick="closeModal('motivation-modal')">Lanjut Puasa!</button>
+    </div>
+
+    <script>
+        const motivations = [
+            "Wah, hebat banget! Kamu memang pahlawan puasa!",
+            "Alhamdulillah! Malaikat pasti senyum lihat kamu!",
+            "Keren! Perut kosong tapi semangat tetap full!",
+            "Satu hari lagi terlewati dengan sukses! Tos dulu!",
+            "Masya Allah! Kamu anak yang kuat dan pintar!",
+            "Pahalamu makin banyak hari ini. Lanjutkan!",
+            "Pingu bangga banget sama puasamu hari ini!",
+            "Luar biasa! Tinggal selangkah lagi menuju Idul Fitri!",
+            "Yey! Berhasil menahan lapar dan haus. Kamu juara!",
+            "Bintang 5 buat kamu yang puasa full hari ini! ⭐⭐⭐⭐⭐"
+        ];
+
+        const welcomeQuestions = [
+            "Sudah siap puasa hari ini?",
+            "Semangat puasanya ya, pasti bisa!",
+            "Kira-kira hari ini mau buka puasa pakai apa nih?",
+            "Pingu yakin hari ini kamu pasti kuat puasanya!",
+            "Wah, makin jago puasanya! Lanjut terus ya?"
+        ];
+
+        const grid = document.getElementById('tracker-grid');
+        const cheerSound = document.getElementById('cheer-sound');
+        const totalDays = 30;
+        
+        // Mulai 18 Februari 2026
+        const startDate = new Date(2026, 1, 18); 
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+
+        let savedData = JSON.parse(localStorage.getItem('puasaTrackerData')) || {};
+        let userName = localStorage.getItem('puasaUserName');
+
+        function initApp() {
+            initTracker();
+            checkUser();
+        }
+
+        // Fungsi Trik Buka Kunci Audio Browser
+        function unlockAudio() {
+            cheerSound.volume = 0; 
+            cheerSound.play().then(() => {
+                cheerSound.pause();
+                cheerSound.currentTime = 0;
+                cheerSound.volume = 1; 
+            }).catch(e => console.log("Audio unlock tertunda:", e));
+        }
+
+        function checkUser() {
+            const overlay = document.getElementById('overlay');
+            if (!userName) {
+                document.getElementById('name-modal').style.display = 'block';
+                overlay.style.display = 'block';
+            } else {
+                const randomQuestion = welcomeQuestions[Math.floor(Math.random() * welcomeQuestions.length)];
+                document.getElementById('welcome-text').innerText = `Hai ${userName}! \n\n${randomQuestion}`;
+                document.getElementById('welcome-modal').style.display = 'block';
+                overlay.style.display = 'block';
+            }
+        }
+
+        function saveName() {
+            const inputVal = document.getElementById('user-name-input').value.trim();
+            if (inputVal === "") {
+                alert("Isi namamu dulu ya biar Pingu tahu!");
+                return;
+            }
+            userName = inputVal;
+            localStorage.setItem('puasaUserName', userName);
+            
+            unlockAudio(); // Buka kunci audio saat tombol diklik
+            closeModal('name-modal');
+        }
+
+        function closeWelcomeModal() {
+            unlockAudio(); // Buka kunci audio saat tombol diklik
+            closeModal('welcome-modal');
+        }
+
+        function initTracker() {
+            for (let i = 1; i <= totalDays; i++) {
+                const card = document.createElement('div');
+                card.className = 'day-card';
+                card.id = 'day-' + i;
+                
+                let currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + (i - 1));
+                let dateString = currentDate.getDate() + ' ' + monthNames[currentDate.getMonth()];
+
+                if (savedData[i]) {
+                    card.classList.add('checked');
+                }
+
+                card.innerHTML = `
+                    <span class="day-number">${i}</span>
+                    <span class="day-date">${dateString}</span>
+                `;
+                
+                card.onclick = (e) => toggleDay(i, card, e);
+                grid.appendChild(card);
+            }
+        }
+
+        function toggleDay(day, cardElement, event) {
+            if (savedData[day]) {
+                // Batalkan ceklis
+                savedData[day] = false;
+                cardElement.classList.remove('checked');
+                cheerSound.pause();
+                cheerSound.currentTime = 0;
+            } else {
+                // Ceklis & Selebrasi
+                cheerSound.currentTime = 0; 
+                cheerSound.play().catch(e => console.log("Gagal memutar audio:", e));
+
+                savedData[day] = true;
+                cardElement.classList.add('checked');
+                fireConfetti(event);
+                setTimeout(() => showMotivation(), 800); 
+            }
+            localStorage.setItem('puasaTrackerData', JSON.stringify(savedData));
+        }
+
+        function fireConfetti(event) {
+            const rect = event.target.closest('.day-card').getBoundingClientRect();
+            const x = (rect.left + (rect.width / 2)) / window.innerWidth;
+            const y = (rect.top + (rect.height / 2)) / window.innerHeight;
+
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { x: x, y: y },
+                colors: ['#FFC107', '#4A90E2', '#FF5722', '#4CAF50', '#E91E63']
+            });
+        }
+
+        function showMotivation() {
+            const modal = document.getElementById('motivation-modal');
+            const overlay = document.getElementById('overlay');
+            const textElement = document.getElementById('motivation-text');
+            
+            const randomMsg = motivations[Math.floor(Math.random() * motivations.length)];
+            textElement.innerText = `Wah ${userName}, ${randomMsg.toLowerCase()}`;
+            
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Jalankan aplikasi
+        initApp();
+    </script>
+</body>
+</html>
