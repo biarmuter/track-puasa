@@ -179,23 +179,26 @@
             instructionText.innerHTML = "Tekan <strong>SPASI</strong> atau klik layar untuk melompat.";
         }
 
-        // Kumpulan Fakta Puasa Anak
         const fastingFacts = [
-            "Puasa itu bikin tubuh kita jadi super bersih dari dalam loh, seperti pahlawan yang mengusir kuman jahat di perut kita!",
-            "Dengan berpuasa, perut kita istirahat sebentar. Mesin pencernaan di dalam perut jadi lebih awet dan sehat.",
-            "Puasa mengajarkan kita untuk lebih sabar dan mengendalikan amarah. Pingu aja sabar nunggu bedug maghrib!",
-            "Orang yang sedang puasa itu doanya sangat mudah dikabulkan sama Allah. Yuk banyak-banyak berdoa yang baik-baik!",
-            "Saat berbuka puasa, memakan kurma sangat bagus karena rasa manis alaminya bisa mengembalikan tenaga kita dengan cepat.",
-            "Berpuasa bikin kita lebih peka dan peduli sama teman-teman kita di luar sana yang kesulitan mencari makanan.",
-            "Nabi Muhammad SAW sangat suka berbuka puasa dengan makanan yang manis alami dan minum air putih yang segar.",
-            "Tidur siang sebentar saat puasa juga bisa dihitung ibadah loh, asal jangan kebablasan sampai sore ya!"
+            "Kamu hebat sekali bisa bangun pagi-pagi untuk sahur tepat waktu dan tidur tepat waktu!",
+            "Kamu luar biasa mau merasakan bagaimana rasanya teman-teman yang sedang lapar!",
+            "Kamu pintar sekali tetap tenang dan tidak cepat marah walau sedang haus dan lapar!",
+            "Kamu keren sekali bisa menghargai setiap suapan makanan saat berbuka tiba.",
+            "Kamu hebat sudah memberikan waktu istirahat untuk perutmu hari ini.",
+            "Kamu luar biasa membiarkan tubuhmu 'bersih-bersih' dari kotoran jahat selama puasa.",
+            "Kamu manis sekali karena selalu semangat menunggu waktu makan bareng Bapak dan Ibu.",
+            "Kamu hebat sudah berani mencoba berpuasa sampai jam yang kita sepakati.",
+            "Kamu pintar karena lahap makan makanan bergizi saat sahur dan berbuka.",
+            "Kamu anak saleh karena belajar melakukan hal yang disukai Allah. Itu tandanya kamu anak yang hebat"
         ];
 
+        // Status Game
         let frames = 0;
         let score = 0;
-        let lastFactScore = 0; // Menyimpan histori skor kelipatan 100 terakhir
+        let lastFactScore = 0; 
         let isGameOver = false;
         let gameStarted = false; 
+        let isPaused = false; // Flag penahan animasi (Pause total)
         let gameSpeed = 5;
         let animationId;
         let countdownTimer;
@@ -220,7 +223,8 @@
             },
             
             jump() {
-                if (this.grounded && !isGameOver && gameStarted) {
+                // Hanya bisa lompat jika game berjalan, tidak game over, dan tidak di-pause
+                if (this.grounded && !isGameOver && gameStarted && !isPaused) {
                     this.dy = this.jumpForce;
                     this.grounded = false;
                 }
@@ -282,6 +286,7 @@
                     if (score > 0 && score % 100 === 0 && score !== lastFactScore) {
                         lastFactScore = score;
                         triggerFactPopup();
+                        return; // Keluar dari loop agar rintangan lain tidak ter-update selama pause
                     }
                 }
             }
@@ -297,9 +302,11 @@
             ctx.stroke();
         }
 
+        // Loop Animasi Utama
         function animate() {
+            if (isPaused) return; // Menghentikan laju waktu secara mutlak jika pause
+            
             if (isGameOver) {
-                cancelAnimationFrame(animationId);
                 triggerMathChallenge();
                 return;
             }
@@ -340,25 +347,22 @@
             document.getElementById('start-modal').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
             gameStarted = true;
+            isPaused = false;
             animate();
         }
 
         // Logika Popup Fakta Puasa
         function triggerFactPopup() {
-            // Hentikan permainan sejenak
-            cancelAnimationFrame(animationId);
-            gameStarted = false; 
-
+            isPaused = true; // Kunci sistem waktu (Pause sejati)
+            
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('fact-modal').style.display = 'block';
 
-            // Ambil fakta acak
             let randomFact = fastingFacts[Math.floor(Math.random() * fastingFacts.length)];
             document.getElementById('fact-content').innerText = randomFact;
 
-            // Hitung estimasi waktu baca (Asumsi 2 kata per detik untuk anak-anak)
             let wordCount = randomFact.split(" ").length;
-            let readTimeSeconds = Math.max(3, Math.ceil(wordCount / 2)); // Minimal 3 detik
+            let readTimeSeconds = Math.max(3, Math.ceil(wordCount / 2)); 
 
             let btnContinue = document.getElementById('btn-continue-fact');
             btnContinue.disabled = true;
@@ -366,7 +370,6 @@
             btnContinue.classList.add('btn-secondary');
             btnContinue.innerText = `Lanjut Main (${readTimeSeconds} detik)`;
 
-            // Countdown Timer
             countdownTimer = setInterval(() => {
                 readTimeSeconds--;
                 if (readTimeSeconds > 0) {
@@ -377,7 +380,7 @@
                     btnContinue.classList.remove('btn-secondary');
                     btnContinue.classList.add('btn-success');
                     btnContinue.innerText = "▶️ Lanjut Main!";
-                    btnContinue.onclick = resumeGame; // Pasang fungsi klik saat waktu habis
+                    btnContinue.onclick = resumeGame; 
                 }
             }, 1000);
         }
@@ -385,14 +388,14 @@
         function resumeGame() {
             document.getElementById('fact-modal').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
-            gameStarted = true;
-            animate(); // Lanjutkan game dari titik terakhir
+            
+            isPaused = false; // Buka kunci sistem waktu
+            animate(); // Panggil fungsi animasi untuk melanjutkannya persis di frame terakhir
         }
 
         let currentAnswer = 0;
 
         function triggerMathChallenge() {
-            gameStarted = false; 
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('math-modal').style.display = 'block';
             document.getElementById('math-feedback').style.display = 'none';
@@ -428,10 +431,12 @@
             pinguin.dy = 0;
             frames = 0;
             score = 0;
-            lastFactScore = 0; // Reset histori skor fakta
+            lastFactScore = 0; 
             gameSpeed = 5;
             document.getElementById('score').innerText = score;
+            
             isGameOver = false;
+            isPaused = false;
             gameStarted = true;
             animate();
         }
