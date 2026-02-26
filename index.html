@@ -28,8 +28,30 @@
         .subtitle {
             font-size: 1.2em;
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
+        
+        /* Tombol Game Style */
+        .btn-game {
+            background-color: var(--secondary);
+            color: #333;
+            border: 3px solid #FFA000;
+            padding: 12px 25px;
+            font-size: 1.2em;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            margin-bottom: 30px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-game:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
         .grid-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
@@ -149,7 +171,9 @@
 
     <p class="mascot">🐧✨</p>
     <h1>Tracker Puasa Juara!</h1>
-    <p class="subtitle">Klik kotak harinya kalau kamu berhasil puasa penuh ya!</p>
+    <p class="subtitle">Klik kotak harinya kalau Kamu berhasil puasa penuh ya!</p>
+
+    <a href="game.html" class="btn-game">🎮 Main Pinguin Lompat</a>
 
     <div class="grid-container" id="tracker-grid">
         </div>
@@ -179,7 +203,7 @@
     <script>
         const motivations = [
             "Wah, hebat banget! Kamu memang pahlawan puasa!",
-            "Alhamdulillah! Malaikat pasti senyum lihat kamu!",
+            "Alhamdulillah! Malaikat pasti senyum lihat Kamu!",
             "Keren! Perut kosong tapi semangat tetap full!",
             "Satu hari lagi terlewati dengan sukses! Tos dulu!",
             "Masya Allah! Kamu anak yang kuat dan pintar!",
@@ -187,14 +211,14 @@
             "Pingu bangga banget sama puasamu hari ini!",
             "Luar biasa! Tinggal selangkah lagi menuju Idul Fitri!",
             "Yey! Berhasil menahan lapar dan haus. Kamu juara!",
-            "Bintang 5 buat kamu yang puasa full hari ini! ⭐⭐⭐⭐⭐"
+            "Bintang 5 buat Kamu yang puasa full hari ini! ⭐⭐⭐⭐⭐"
         ];
 
         const welcomeQuestions = [
             "Sudah siap puasa hari ini?",
             "Semangat puasanya ya, pasti bisa!",
             "Kira-kira hari ini mau buka puasa pakai apa nih?",
-            "Pingu yakin hari ini kamu pasti kuat puasanya!",
+            "Pingu yakin hari ini Kamu pasti kuat puasanya!",
             "Wah, makin jago puasanya! Lanjut terus ya?"
         ];
 
