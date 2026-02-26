@@ -18,17 +18,18 @@
             text-align: center;
             margin: 0;
             padding: 20px;
-            overflow: hidden; /* Mencegah scroll saat main */
+            overflow: hidden; 
+            touch-action: none; 
         }
         h1 {
             color: var(--primary);
             margin-bottom: 5px;
         }
-        p {
+        #instruction-text {
             color: #555;
             margin-bottom: 20px;
+            font-size: 1.1em;
         }
-        /* Area Game */
         canvas {
             background-color: #B3E5FC;
             border: 4px solid white;
@@ -37,7 +38,6 @@
             max-width: 100%;
             cursor: pointer;
         }
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -92,9 +92,14 @@
         .btn-success {
             background: #4CAF50;
         }
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             opacity: 0.9;
             transform: scale(1.02);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         #overlay {
             display: none;
@@ -109,12 +114,21 @@
             color: var(--primary);
             margin-bottom: 10px;
         }
+        .fact-text {
+            font-size: 1.2em;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 20px;
+            background: #FFF9C4;
+            padding: 15px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
 
     <h1>🐧 Petualangan Pingu!</h1>
-    <p>Ketuk layar atau tekan SPASI untuk melompat.</p>
+    <p id="instruction-text">Memuat panduan...</p>
 
     <div class="score-board">Skor: <span id="score">0</span></div>
     
@@ -127,6 +141,12 @@
         <p>Bantu Pingu melompati rintangan es sambil menunggu waktu berbuka puasa!</p>
         <button class="btn btn-success" onclick="startGame()">▶️ Mulai Game</button>
         <button class="btn btn-secondary" onclick="window.location.href='index.html'">Kembali ke Tracker Puasa</button>
+    </div>
+
+    <div id="fact-modal" class="modal">
+        <h2 style="color: var(--primary); margin-top: 0;">Tahukah Kamu? 💡</h2>
+        <div id="fact-content" class="fact-text">Fakta puasa ada di sini.</div>
+        <button id="btn-continue-fact" class="btn btn-secondary" disabled>Tunggu sebentar...</button>
     </div>
 
     <div id="math-modal" class="modal">
@@ -150,18 +170,39 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         
-        // Game Variables
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        const instructionText = document.getElementById('instruction-text');
+        
+        if (isTouchDevice) {
+            instructionText.innerHTML = "<strong>👆 Tap layar di mana saja untuk melompat!</strong>";
+        } else {
+            instructionText.innerHTML = "Tekan <strong>SPASI</strong> atau klik layar untuk melompat.";
+        }
+
+        // Kumpulan Fakta Puasa Anak
+        const fastingFacts = [
+            "Puasa itu bikin tubuh kita jadi super bersih dari dalam loh, seperti pahlawan yang mengusir kuman jahat di perut kita!",
+            "Dengan berpuasa, perut kita istirahat sebentar. Mesin pencernaan di dalam perut jadi lebih awet dan sehat.",
+            "Puasa mengajarkan kita untuk lebih sabar dan mengendalikan amarah. Pingu aja sabar nunggu bedug maghrib!",
+            "Orang yang sedang puasa itu doanya sangat mudah dikabulkan sama Allah. Yuk banyak-banyak berdoa yang baik-baik!",
+            "Saat berbuka puasa, memakan kurma sangat bagus karena rasa manis alaminya bisa mengembalikan tenaga kita dengan cepat.",
+            "Berpuasa bikin kita lebih peka dan peduli sama teman-teman kita di luar sana yang kesulitan mencari makanan.",
+            "Nabi Muhammad SAW sangat suka berbuka puasa dengan makanan yang manis alami dan minum air putih yang segar.",
+            "Tidur siang sebentar saat puasa juga bisa dihitung ibadah loh, asal jangan kebablasan sampai sore ya!"
+        ];
+
         let frames = 0;
         let score = 0;
+        let lastFactScore = 0; // Menyimpan histori skor kelipatan 100 terakhir
         let isGameOver = false;
+        let gameStarted = false; 
         let gameSpeed = 5;
         let animationId;
+        let countdownTimer;
 
-        // Cek status hari ini di localStorage
         let todayDate = new Date().toDateString();
         let lockedDate = localStorage.getItem('pinguLockedDate');
 
-        // Pinguin Object
         const pinguin = {
             x: 50,
             y: 200,
@@ -179,7 +220,7 @@
             },
             
             jump() {
-                if (this.grounded && !isGameOver) {
+                if (this.grounded && !isGameOver && gameStarted) {
                     this.dy = this.jumpForce;
                     this.grounded = false;
                 }
@@ -187,26 +228,23 @@
             
             update() {
                 this.y += this.dy;
-                // Gravitasi
                 if (this.y + this.height < 250) {
                     this.dy += this.gravity;
                     this.grounded = false;
                 } else {
                     this.dy = 0;
-                    this.y = 250 - this.height; // Batas tanah
+                    this.y = 250 - this.height; 
                     this.grounded = true;
                 }
                 this.draw();
             }
         };
 
-        // Rintangan Balok Es
         const obstacles = [];
         
         function handleObstacles() {
-            // Tambah rintangan baru setiap 100 frame
             if (frames % 100 === 0) {
-                let obsHeight = Math.random() * (60 - 30) + 30; // tinggi acak
+                let obsHeight = Math.random() * (60 - 30) + 30; 
                 obstacles.push({
                     x: canvas.width,
                     y: 250 - obsHeight,
@@ -219,14 +257,12 @@
                 let obs = obstacles[i];
                 obs.x -= gameSpeed;
                 
-                // Gambar rintangan es
                 ctx.fillStyle = "white";
                 ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
                 ctx.strokeStyle = "#81D4FA";
                 ctx.lineWidth = 3;
                 ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
                 
-                // Deteksi Tabrakan (Collision)
                 if (
                     pinguin.x < obs.x + obs.width &&
                     pinguin.x + pinguin.width - 10 > obs.x &&
@@ -236,17 +272,21 @@
                     isGameOver = true;
                 }
                 
-                // Hapus rintangan yang sudah lewat dan tambah skor
                 if (obs.x + obs.width < 0) {
                     obstacles.splice(i, 1);
                     score += 10;
                     document.getElementById('score').innerText = score;
                     i--;
+
+                    // CEK SKOR KELIPATAN 100 UNTUK POPUP FAKTA
+                    if (score > 0 && score % 100 === 0 && score !== lastFactScore) {
+                        lastFactScore = score;
+                        triggerFactPopup();
+                    }
                 }
             }
         }
 
-        // Garis Tanah
         function drawGround() {
             ctx.fillStyle = "#E0F7FA";
             ctx.fillRect(0, 250, canvas.width, 50);
@@ -257,7 +297,6 @@
             ctx.stroke();
         }
 
-        // Main Game Loop
         function animate() {
             if (isGameOver) {
                 cancelAnimationFrame(animationId);
@@ -270,36 +309,90 @@
             pinguin.update();
             handleObstacles();
             
-            // Tingkatkan kecepatan perlahan
             if (frames % 500 === 0 && gameSpeed < 10) gameSpeed += 0.5;
             
             frames++;
             animationId = requestAnimationFrame(animate);
         }
 
-        // --- KONTROL TOMBOL & SENTUHAN ---
+        // Kontrol Sentuhan & Tombol
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') pinguin.jump();
-        });
-        canvas.addEventListener('mousedown', () => pinguin.jump());
-        canvas.addEventListener('touchstart', (e) => {
-            if(e.target === canvas) {
-                e.preventDefault();
+            if (e.code === 'Space') {
+                e.preventDefault(); 
                 pinguin.jump();
             }
-        }, {passive: false});
+        });
 
-        // --- FUNGSI ALUR GAME (START, MATH, RESTART) ---
-        
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                pinguin.jump();
+            }
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                pinguin.jump();
+            }
+        });
+
+        // Alur Game
         function startGame() {
             document.getElementById('start-modal').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
+            gameStarted = true;
             animate();
+        }
+
+        // Logika Popup Fakta Puasa
+        function triggerFactPopup() {
+            // Hentikan permainan sejenak
+            cancelAnimationFrame(animationId);
+            gameStarted = false; 
+
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('fact-modal').style.display = 'block';
+
+            // Ambil fakta acak
+            let randomFact = fastingFacts[Math.floor(Math.random() * fastingFacts.length)];
+            document.getElementById('fact-content').innerText = randomFact;
+
+            // Hitung estimasi waktu baca (Asumsi 2 kata per detik untuk anak-anak)
+            let wordCount = randomFact.split(" ").length;
+            let readTimeSeconds = Math.max(3, Math.ceil(wordCount / 2)); // Minimal 3 detik
+
+            let btnContinue = document.getElementById('btn-continue-fact');
+            btnContinue.disabled = true;
+            btnContinue.classList.remove('btn-success');
+            btnContinue.classList.add('btn-secondary');
+            btnContinue.innerText = `Lanjut Main (${readTimeSeconds} detik)`;
+
+            // Countdown Timer
+            countdownTimer = setInterval(() => {
+                readTimeSeconds--;
+                if (readTimeSeconds > 0) {
+                    btnContinue.innerText = `Lanjut Main (${readTimeSeconds} detik)`;
+                } else {
+                    clearInterval(countdownTimer);
+                    btnContinue.disabled = false;
+                    btnContinue.classList.remove('btn-secondary');
+                    btnContinue.classList.add('btn-success');
+                    btnContinue.innerText = "▶️ Lanjut Main!";
+                    btnContinue.onclick = resumeGame; // Pasang fungsi klik saat waktu habis
+                }
+            }, 1000);
+        }
+
+        function resumeGame() {
+            document.getElementById('fact-modal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+            gameStarted = true;
+            animate(); // Lanjutkan game dari titik terakhir
         }
 
         let currentAnswer = 0;
 
         function triggerMathChallenge() {
+            gameStarted = false; 
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('math-modal').style.display = 'block';
             document.getElementById('math-feedback').style.display = 'none';
@@ -335,25 +428,23 @@
             pinguin.dy = 0;
             frames = 0;
             score = 0;
+            lastFactScore = 0; // Reset histori skor fakta
             gameSpeed = 5;
             document.getElementById('score').innerText = score;
             isGameOver = false;
+            gameStarted = true;
             animate();
         }
 
-        // --- SAAT HALAMAN PERTAMA KALI DIBUKA ---
         window.onload = () => {
-            // Gambar layar latar belakang (tanah dan pinguin) agar canvas tidak kosong
             drawGround();
             pinguin.draw();
             
             document.getElementById('overlay').style.display = 'block';
             
             if (lockedDate === todayDate) {
-                // Jika sudah nyerah hari ini, langsung tampilkan modal terkunci
                 document.getElementById('locked-modal').style.display = 'block';
             } else {
-                // Jika belum terkunci, tampilkan layar start
                 document.getElementById('start-modal').style.display = 'block';
             }
         };
