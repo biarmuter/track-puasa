@@ -173,7 +173,7 @@
     <h1>Tracker Puasa Juara!</h1>
     <p class="subtitle">Klik kotak harinya kalau Kamu berhasil puasa penuh ya!</p>
 
-    <a href="game.html" class="btn-game">🎮 Main Pinguin Lompat</a>
+    <a href="pinguin-lompat.html" class="btn-game">🎮 Main Mini Game Pingu</a>
 
     <div class="grid-container" id="tracker-grid">
         </div>
@@ -226,7 +226,6 @@
         const cheerSound = document.getElementById('cheer-sound');
         const totalDays = 30;
         
-        // Mulai 18 Februari 2026
         const startDate = new Date(2026, 1, 18); 
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
 
@@ -238,7 +237,6 @@
             checkUser();
         }
 
-        // Fungsi Trik Buka Kunci Audio Browser
         function unlockAudio() {
             cheerSound.volume = 0; 
             cheerSound.play().then(() => {
@@ -270,12 +268,12 @@
             userName = inputVal;
             localStorage.setItem('puasaUserName', userName);
             
-            unlockAudio(); // Buka kunci audio saat tombol diklik
+            unlockAudio();
             closeModal('name-modal');
         }
 
         function closeWelcomeModal() {
-            unlockAudio(); // Buka kunci audio saat tombol diklik
+            unlockAudio(); 
             closeModal('welcome-modal');
         }
 
@@ -305,13 +303,11 @@
 
         function toggleDay(day, cardElement, event) {
             if (savedData[day]) {
-                // Batalkan ceklis
                 savedData[day] = false;
                 cardElement.classList.remove('checked');
                 cheerSound.pause();
                 cheerSound.currentTime = 0;
             } else {
-                // Ceklis & Selebrasi
                 cheerSound.currentTime = 0; 
                 cheerSound.play().catch(e => console.log("Gagal memutar audio:", e));
 
@@ -353,7 +349,6 @@
             document.getElementById('overlay').style.display = 'none';
         }
 
-        // Jalankan aplikasi
         initApp();
     </script>
 </body>
